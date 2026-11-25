@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Defs>
   <VEF.Abilities.AbilityDef ParentName="VPE_PsycastBase">
-    <defName>BA_Fortify</defName><label>blood fortification</label><description>Automatically tends bleeding wounds first, then accelerates healing and reduces pain. Activates when downed.</description>
+    <defName>BA_Fortify</defName><label>blood fortification</label><description>Automatically tends bleeding wounds first, then accelerates healing and reduces pain. Emergency clotting when downed or at 60% blood loss stops bleeding even with an empty reserve.</description>
     <iconPath>BloodArchon/Abilities/Fortify</iconPath><abilityClass>BloodArchon.BloodAbility</abilityClass>
     <range>0</range><castTime>15</castTime><cooldownTime>120</cooldownTime><targetMode>Self</targetMode>
     <showUndrafted>true</showUndrafted><chance>0</chance>
@@ -78,7 +78,7 @@
     </li></modExtensions>
   </VEF.Abilities.AbilityDef>
   <VEF.Abilities.AbilityDef ParentName="VPE_PsycastBase">
-    <defName>BA_Aura</defName><label>aura of blood hunger</label><description>Drains 2% of total blood and cuts every standing flesh pawn in a 30-cell radius with line of sight every 3 seconds. Allies are affected. Activation costs 20 blood, upkeep 1 per second.</description>
+    <defName>BA_Aura</defName><label>aura of blood hunger</label><description>Drains 2% of total blood and creates direct bleeding cuts (ignoring armor) on every standing flesh pawn in a 30-cell radius with line of sight every 3 seconds. Allies are affected. Activation costs 20 blood, upkeep 1 per second.</description>
     <iconPath>BloodArchon/Abilities/Aura</iconPath><abilityClass>BloodArchon.BloodAbility</abilityClass>
     <range>0</range><castTime>60</castTime><cooldownTime>120</cooldownTime><targetMode>Self</targetMode>
     <showUndrafted>true</showUndrafted><chance>0</chance>

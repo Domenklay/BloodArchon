@@ -37,11 +37,24 @@ namespace BloodArchon {
   public void StartPuddle(int now){puddleEnd=now+600;puddleNext=now+30;if(pawn.drafter!=null)pawn.drafter.Drafted=false;pawn.jobs?.StopAll();Rules.Status(pawn,"BA_PuddleForm",true);foreach(var wound in Rules.Wounds(pawn).ToList())if(pawn.health.hediffSet.hediffs.Contains(wound))wound.Tended(1f,1f,1);}
   public void TickPuddle(int now){if(!pawn.Spawned){puddleEnd=0;Rules.Status(pawn,"BA_PuddleForm",false);return;} Rules.Status(pawn,"BA_PuddleForm",true);while(puddleNext<=now&&puddleNext<=puddleEnd){puddleNext+=30;Rules.SetLoss(pawn,Math.Max(0,Rules.Loss(pawn)-.05f));blood=Math.Min(Max,blood+Max*.05f);foreach(var w in Rules.Wounds(pawn).Where(h=>h.BleedRate>0f).ToList())if(pawn.health.hediffSet.hediffs.Contains(w))w.Tended(1f,1f,1);foreach(var injury in pawn.health.hediffSet.hediffs.OfType<Hediff_Injury>().ToList())if(pawn.health.hediffSet.hediffs.Contains(injury)){if(injury.IsPermanent()){injury.Severity=Math.Max(0,injury.Severity-1f);if(injury.Severity<=.001f&&pawn.health.hediffSet.hediffs.Contains(injury))pawn.health.RemoveHediff(injury);}else injury.Heal(2f);}}if(now>=puddleEnd){puddleEnd=0;Rules.Status(pawn,"BA_PuddleForm",false);Rules.Pulse(pawn,2f);}}
   public bool Has(string suffix)=>Rules.Has(pawn,"BA_"+suffix);
-  public void Tick(int now){ if(pawn==null||pawn.Dead)return; blood=Mathf.Clamp(blood,0,Max); if(Puddle){TickPuddle(now);return;} bool unconscious=pawn.Downed; if(unconscious&&!wasUnconscious&&Has("Fortify")){if(!fortify){fortify=true;emergency=true;}} wasUnconscious=unconscious;
-   if(emergency&&!pawn.Downed){emergency=false;fortify=false;}
+  public bool Critical=>pawn!=null&&!pawn.Dead&&Has("Fortify")&&(pawn.Downed||Rules.Loss(pawn)>=.60f);
+  public void EmergencyStabilize(int now){
+   if(!Critical)return;
+   if(!fortify){fortify=true;emergency=true;}
+   if(pawn.health.hediffSet.BleedRateTotal<=.00001f)return;
+   Rules.Status(pawn,"BA_Fortified",true);
+   foreach(var wound in Rules.Wounds(pawn).Where(h=>h.BleedRate>.00001f).ToList()){
+    if(!pawn.health.hediffSet.hediffs.Contains(wound))continue;
+    Spend(Rules.TendCost(wound)*BloodMod.Config.cost,true);
+    Rules.Tend(wound,pawn);
+   }
+   nextTend=Math.Max(nextTend,now+60);
+  }
+  public void Tick(int now){ if(pawn==null||pawn.Dead)return; blood=Mathf.Clamp(blood,0,Max); if(Puddle){TickPuddle(now);return;} bool unconscious=pawn.Downed; if(Critical)EmergencyStabilize(now); wasUnconscious=unconscious;
+   if(emergency&&!Critical){emergency=false;fortify=false;}
    if(fortify){Rules.Status(pawn,"BA_Fortified",true); if(now>=nextTend){nextTend=now+Mathf.RoundToInt(Mathf.Lerp(180,60,Mathf.Clamp01((Rules.Quality(pawn)-.4f)/1.1f))); var wound=Rules.Wounds(pawn).FirstOrDefault(); if(wound!=null&&Pay(Rules.TendCost(wound),emergency||pawn.Downed))Rules.Tend(wound,pawn); }
     if(now>=nextHeal && pawn.health.hediffSet.BleedRateTotal<=0.00001f){nextHeal=now+2500; var injury=pawn.health.hediffSet.hediffs.OfType<Hediff_Injury>().Where(h=>h.Severity>.01f && h.IsTended() && !h.IsPermanent()).OrderByDescending(h=>h.Severity).FirstOrDefault(); if(injury!=null&&Pay(.25f,emergency||pawn.Downed))injury.Heal(Mathf.Min(.5f,.15f+.025f*Rules.Level(pawn))); }} else Rules.Status(pawn,"BA_Fortified",false);
-   if(aura){if(!pawn.Spawned||pawn.Downed||pawn.Dead){aura=false;return;} if(now>=nextUpkeep){nextUpkeep=now+60;if(!Pay(1)){aura=false;return;}} if(now>=nextAura){nextAura=now+180; foreach(var p in pawn.Map.mapPawns.AllPawnsSpawned.ToList()){ if(p==pawn||!Rules.HasBlood(p)||p.Downed||p.Position.DistanceTo(pawn.Position)>30||!GenSight.LineOfSight(pawn.Position,p.Position,pawn.Map))continue; Receive(Rules.Drain(p,.02f)); if(!p.Dead)Rules.Cut(p,pawn,Rand.RangeInclusive(2,4),.15f); }}} }
+   if(aura){if(!pawn.Spawned||pawn.Downed||pawn.Dead){aura=false;return;} if(now>=nextUpkeep){nextUpkeep=now+60;if(!Pay(1)){aura=false;return;}} if(now>=nextAura){nextAura=now+180; foreach(var p in pawn.Map.mapPawns.AllPawnsSpawned.ToList()){ if(p==pawn||!Rules.HasBlood(p)||p.Downed||p.Position.DistanceTo(pawn.Position)>30||!GenSight.LineOfSight(pawn.Position,p.Position,pawn.Map))continue; Receive(Rules.Drain(p,.02f)); if(!p.Dead&&!p.Downed)Rules.AuraCut(p,Rand.RangeInclusive(2,4)); }}} }
  }
  public class Control : IExposable {
   public Pawn target, owner; public Faction original; public int end;
@@ -86,6 +99,17 @@ namespace BloodArchon {
   public static void Tend(Hediff h,Pawn caster)=>h.Tended(Quality(caster),1.4f,1);
   public static void Status(Pawn p,string def,bool active){var d=DefDatabase<HediffDef>.GetNamed(def);var h=p.health.hediffSet.GetFirstHediffOfDef(d);if(active&&h==null)p.health.AddHediff(d);else if(!active&&h!=null)p.health.RemoveHediff(h);}
   public static void Cut(Pawn p,Pawn caster,float amount,float ap){p.TakeDamage(new DamageInfo(DamageDefOf.Cut,amount*BloodMod.Config.damage,ap,-1,caster));}
+  public static void AuraCut(Pawn p,float amount){
+   if(!HasBlood(p)||p.Downed)return;
+   var set=p.health.hediffSet;
+   var parts=set.GetNotMissingParts().Where(part=>part.depth==BodyPartDepth.Outside && !set.AncestorHasDirectlyAddedParts(part) && !set.hediffs.Any(h=>h.Part==part&&(h is Hediff_AddedPart||h.def.addedPartProps!=null)) && set.GetPartHealth(part)>1.5f).ToList();
+   if(parts.Count==0)return;
+   var hit=parts.RandomElement();
+   float severity=Math.Min(Math.Max(.1f,amount*BloodMod.Config.damage),set.GetPartHealth(hit)-1f);
+   var wound=HediffMaker.MakeHediff(DefDatabase<HediffDef>.GetNamed("Cut"),p,hit);
+   wound.Severity=severity;
+   p.health.AddHediff(wound,hit);
+  }
   public static void Pulse(Pawn p,float size=1f){ if(p==null||!p.Spawned)return;var fx=DefDatabase<FleckDef>.GetNamedSilentFail("PsycastPsychicEffect");if(fx!=null)FleckMaker.Static(p.Position,p.Map,fx,size); }
   public static bool PartUnder(BodyPartRecord part,BodyPartRecord ancestor){for(var q=part;q!=null;q=q.parent)if(q==ancestor)return true;return false;}
   public static bool CanRegrow(Pawn p,BodyPartRecord part){if(!HasBlood(p)||part==null||part.parent==null)return false;var set=p.health.hediffSet;if(!set.PartIsMissing(part)||set.PartIsMissing(part.parent)||set.AncestorHasDirectlyAddedParts(part))return false;return !set.hediffs.Any(h=>h.Part!=null&&(h is Hediff_AddedPart || h is Hediff_Implant || h.def.addedPartProps!=null)&&(PartUnder(h.Part,part)||PartUnder(part,h.Part)));}
@@ -112,10 +136,10 @@ namespace BloodArchon {
   static Graphic puddleGraphic;
   static FieldInfo rendererPawn=AccessTools.Field(typeof(PawnRenderer),"pawn");
   public static bool RenderPuddle(PawnRenderer __instance,Vector3 __0){var p=rendererPawn?.GetValue(__instance) as Pawn;if(p==null||!p.Spawned||World.Get?.Find(p)?.Puddle!=true)return true;try{if(puddleGraphic==null)puddleGraphic=GraphicDatabase.Get<Graphic_Single>("BloodArchon/Effects/Puddle",ShaderDatabase.Cutout,new Vector2(1.5f,1.5f),Color.white);puddleGraphic.Draw(__0,Rot4.South,p);return false;}catch(Exception e){Log.WarningOnce("[BloodArchon] Puddle rendering: "+e.Message,827176);return true;}}
-  public static void HealthStart(Pawn ___pawn,out Pawn __state){__state=Rules.naturalPawn;Rules.naturalPawn=___pawn;}
+  public static void HealthStart(Pawn ___pawn,out Pawn __state){__state=Rules.naturalPawn;Rules.naturalPawn=___pawn; if(___pawn==null||___pawn.Dead)return; var a=World.Get?.Find(___pawn); if(a==null&&___pawn.Faction==Faction.OfPlayer&&Rules.Has(___pawn,"BA_Fortify"))a=World.Get?.Ensure(___pawn); if(a!=null&&a.Critical)a.EmergencyStabilize(Find.TickManager.TicksGame);}
   public static void HealthEnd(Pawn __state){Rules.naturalPawn=__state;}
   public static Exception HealthFinal(Exception __exception,Pawn __state){Rules.naturalPawn=__state;return __exception;}
-  public static void Severity(Hediff __instance,ref float value){if(Rules.explicitLoss||Rules.naturalPawn==null||__instance.def!=Rules.BloodDef||__instance.pawn!=Rules.naturalPawn)return;var a=World.Get?.Find(__instance.pawn);if(a!=null)value=a.RouteNatural(__instance.Severity,value);}
+  public static void Severity(Hediff __instance,ref float value){if(Rules.explicitLoss||Rules.naturalPawn==null||__instance.def!=Rules.BloodDef||__instance.pawn!=Rules.naturalPawn)return;var a=World.Get?.Find(__instance.pawn);if(a!=null){float old=__instance.Severity; if(value>old&&a.Critical){a.Spend((value-old)*100f,true);value=old;}else value=a.RouteNatural(old,value); }}
   public static bool DamageStart(Thing __instance,ref DamageInfo dinfo,ref DamageWorker.DamageResult __result){if(!(__instance is Pawn p))return true;var a=World.Get?.Find(p);if(a==null||!a.shield||p.Dead||dinfo.Amount<=0)return true;var name=dinfo.Def.defName;if(name=="Flame"||name=="Burn"||name=="Frostbite"||name=="ToxicBuildup")return true;float ratio=2*Rules.Sens(p)/BloodMod.Config.cost;float absorbed=a.Spend(dinfo.Amount/ratio)*ratio;float rest=Math.Max(0,dinfo.Amount-absorbed);if(rest<.001f){__result=new DamageWorker.DamageResult();return false;}a.shield=false;dinfo.SetAmount(rest);return true;}
   public static void DamageEnd(Thing __instance,DamageInfo dinfo,DamageWorker.DamageResult __result){if(__result==null||__result.totalDamageDealt<=0||!(dinfo.Instigator is Pawn attacker)||!(__instance is Pawn p))return;var b=World.Get?.bats.FirstOrDefault(x=>x.pawn==attacker);if(b!=null&&b.owner!=null&&p.HostileTo(b.owner)){if(!b.split)b.hits++;if(!p.Dead&&Rules.HasBlood(p)&&dinfo.Def!=DamageDefOf.Cut)Rules.Cut(p,b.owner,1.5f,.6f);}}
   public class DeathState {public Bat b;public Map map;public IntVec3 pos;}

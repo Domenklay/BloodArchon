@@ -26,7 +26,7 @@ namespace BloodArchon {
  }
  public class Archon : IExposable {
   public Pawn pawn; public float blood=100; public bool fortify, shield, aura, emergency; public bool wasUnconscious; public int nextTend, nextAura, nextUpkeep, nextHeal; public int puddleEnd, puddleNext; public bool Puddle=>puddleEnd>0;
-  public void ExposeData(){ Scribe_References.Look(ref pawn,"pawn"); Scribe_Values.Look(ref blood,"blood",100); Scribe_Values.Look(ref fortify,"fortify"); Scribe_Values.Look(ref shield,"shield"); Scribe_Values.Look(ref aura,"aura"); Scribe_Values.Look(ref emergency,"emergency"); Scribe_Values.Look(ref wasUnconscious,"wasUnconscious"); Scribe_Values.Look(ref nextTend,"nextTend"); Scribe_Values.Look(ref nextAura,"nextAura"); Scribe_Values.Look(ref nextUpkeep,"nextUpkeep"); Scribe_Values.Look(ref nextHeal,"nextHeal"); Scribe_Values.Look(ref puddleEnd,"baPuddleEnd",0); Scribe_Values.Look(ref puddleNext,"baPuddleNext",0); }
+  public void ExposeData(){ Scribe_References.Look(ref pawn,"pawn"); Scribe_Values.Look(ref blood,"blood",100); Scribe_Values.Look(ref fortify,"fortify"); Scribe_Values.Look(ref shield,"shield"); Scribe_Values.Look(ref aura,"aura"); Scribe_Values.Look(ref emergency,"emergency"); Scribe_Values.Look(ref wasUnconscious,"wasUnconscious"); Scribe_Values.Look(ref nextTend,"nextTend"); Scribe_Values.Look(ref nextAura,"nextAura"); Scribe_Values.Look(ref nextUpkeep,"nextUpkeep"); Scribe_Values.Look(ref nextHeal,"nextHeal"); Scribe_Values.Look(ref puddleEnd,"baPuddleEnd",0); Scribe_Values.Look(ref puddleNext,"baPuddleNext",0); if(Scribe.mode==LoadSaveMode.PostLoadInit&&emergency&&fortify){fortify=false;emergency=false;} }
   public float Max=>Math.Max(1,BloodMod.Config.capacity+Math.Max(0,Rules.Level(pawn)-1)*BloodMod.Config.perLevel);
   public float Available(bool poolOnly=false){ float b=Math.Max(0,blood); if(!poolOnly && BloodMod.Config.useBody) b+=Math.Max(0,((BloodMod.Config.safety ? .6f : 1f)-Rules.Loss(pawn))*100); return b; }
   public bool Pay(float units,bool poolOnly=false){ units*=BloodMod.Config.cost; if(Available(poolOnly)+.0001f<units) return false; Spend(units,poolOnly); return true; }
@@ -39,23 +39,37 @@ namespace BloodArchon {
   public void StartPuddle(int now){puddleEnd=now+600;puddleNext=now+30;if(pawn.drafter!=null)pawn.drafter.Drafted=false;pawn.jobs?.StopAll();Rules.Status(pawn,"BA_PuddleForm",true);foreach(var wound in Rules.Wounds(pawn).ToList())if(pawn.health.hediffSet.hediffs.Contains(wound))wound.Tended(1f,1f,1);}
   public void TickPuddle(int now){if(!pawn.Spawned){puddleEnd=0;Rules.Status(pawn,"BA_PuddleForm",false);return;} Rules.Status(pawn,"BA_PuddleForm",true);while(puddleNext<=now&&puddleNext<=puddleEnd){puddleNext+=30;Rules.SetLoss(pawn,Math.Max(0,Rules.Loss(pawn)-.05f));blood=Math.Min(Max,blood+Max*.05f);foreach(var w in Rules.Wounds(pawn).Where(h=>h.BleedRate>0f).ToList())if(pawn.health.hediffSet.hediffs.Contains(w))w.Tended(1f,1f,1);foreach(var injury in pawn.health.hediffSet.hediffs.OfType<Hediff_Injury>().ToList())if(pawn.health.hediffSet.hediffs.Contains(injury)){if(injury.IsPermanent()){injury.Severity=Math.Max(0,injury.Severity-1f);if(injury.Severity<=.001f&&pawn.health.hediffSet.hediffs.Contains(injury))pawn.health.RemoveHediff(injury);}else injury.Heal(2f);}}if(now>=puddleEnd){puddleEnd=0;Rules.Status(pawn,"BA_PuddleForm",false);Rules.Pulse(pawn,2f);}}
   public bool Has(string suffix)=>Rules.Has(pawn,"BA_"+suffix);
-  public bool Critical=>pawn!=null&&!pawn.Dead&&Has("Fortify")&&(pawn.Downed||Rules.Loss(pawn)>=.60f);
-  public void EmergencyStabilize(int now){
-   if(!Critical)return;
-   if(!fortify){fortify=true;emergency=true;}
-   if(pawn.health.hediffSet.BleedRateTotal<=.00001f)return;
-   Rules.Status(pawn,"BA_Fortified",true);
-   foreach(var wound in Rules.Wounds(pawn).Where(h=>h.BleedRate>.00001f).ToList()){
-    if(!pawn.health.hediffSet.hediffs.Contains(wound))continue;
-    Spend(Rules.TendCost(wound)*BloodMod.Config.cost,true);
-    Rules.Tend(wound,pawn);
+  // Emergency treatment is independent of the manually activated fortification.
+  public bool Critical=>pawn!=null&&!pawn.Dead&&Has("Fortify")&&(pawn.Downed||Rules.Loss(pawn)>=.60f)&&pawn.health.hediffSet.BleedRateTotal>.00001f;
+  public void TickFortify(int now){
+   bool critical=Critical;
+   if(!fortify&&critical&&!emergency){
+    emergency=true;
+    nextTend=Math.Max(nextTend,now+120);
    }
-   nextTend=Math.Max(nextTend,now+60);
+   if(!critical||fortify)emergency=false;
+   // Only the manually enabled buff changes pain, preventing automatic down/up loops.
+   Rules.Status(pawn,"BA_Fortified",fortify);
+   if(!fortify&&!emergency)return;
+   if(now>=nextTend){
+    nextTend=now+180;
+    var wound=Rules.Wounds(pawn).FirstOrDefault(h=>!emergency||h.BleedRate>.00001f);
+    if(wound!=null&&pawn.health.hediffSet.hediffs.Contains(wound)){
+     // One wound per interval; critical clotting may still work on an empty pool.
+     // It never restores injury severity or consumes body blood.
+     if(critical&&wound.BleedRate>.00001f){
+      Spend(Rules.TendCost(wound)*BloodMod.Config.cost,true);
+      Rules.Tend(wound,pawn);
+     }else if(fortify&&Pay(Rules.TendCost(wound),pawn.Downed))Rules.Tend(wound,pawn);
+    }
+   }
+   if(fortify&&now>=nextHeal&&pawn.health.hediffSet.BleedRateTotal<=.00001f){
+    nextHeal=now+2500;
+    var injury=pawn.health.hediffSet.hediffs.OfType<Hediff_Injury>().Where(h=>h.Severity>.01f&&h.IsTended()&&!h.IsPermanent()).OrderByDescending(h=>h.Severity).FirstOrDefault();
+    if(injury!=null&&Pay(.25f,pawn.Downed))injury.Heal(Mathf.Min(.5f,.15f+.025f*Rules.Level(pawn)));
+   }
   }
-  public void Tick(int now){ if(pawn==null||pawn.Dead)return; blood=Mathf.Clamp(blood,0,Max); if(Puddle){TickPuddle(now);return;} bool unconscious=pawn.Downed; if(Critical)EmergencyStabilize(now); wasUnconscious=unconscious;
-   if(emergency&&!Critical){emergency=false;fortify=false;}
-   if(fortify){Rules.Status(pawn,"BA_Fortified",true); if(now>=nextTend){nextTend=now+Mathf.RoundToInt(Mathf.Lerp(180,60,Mathf.Clamp01((Rules.Quality(pawn)-.4f)/1.1f))); var wound=Rules.Wounds(pawn).FirstOrDefault(); if(wound!=null&&Pay(Rules.TendCost(wound),emergency||pawn.Downed))Rules.Tend(wound,pawn); }
-    if(now>=nextHeal && pawn.health.hediffSet.BleedRateTotal<=0.00001f){nextHeal=now+2500; var injury=pawn.health.hediffSet.hediffs.OfType<Hediff_Injury>().Where(h=>h.Severity>.01f && h.IsTended() && !h.IsPermanent()).OrderByDescending(h=>h.Severity).FirstOrDefault(); if(injury!=null&&Pay(.25f,emergency||pawn.Downed))injury.Heal(Mathf.Min(.5f,.15f+.025f*Rules.Level(pawn))); }} else Rules.Status(pawn,"BA_Fortified",false);
+  public void Tick(int now){if(pawn==null||pawn.Dead)return;blood=Mathf.Clamp(blood,0,Max);if(Puddle){TickPuddle(now);return;}TickFortify(now);wasUnconscious=pawn.Downed;
    if(aura){if(!pawn.Spawned||pawn.Downed||pawn.Dead){aura=false;return;} if(now>=nextUpkeep){nextUpkeep=now+60;if(!Pay(1)){aura=false;return;}} if(now>=nextAura){nextAura=now+180; foreach(var p in pawn.Map.mapPawns.AllPawnsSpawned.ToList()){ if(p==pawn||!Rules.HasBlood(p)||p.Downed||p.Position.DistanceTo(pawn.Position)>30||!GenSight.LineOfSight(pawn.Position,p.Position,pawn.Map))continue; ReceiveDrain(Rules.Drain(p,.02f)); if(!p.Dead&&!p.Downed)Rules.AuraCut(p,Rand.RangeInclusive(2,4)); }}} }
  }
  public class Control : IExposable {
@@ -147,22 +161,21 @@ namespace BloodArchon {
   public override void Cast(params GlobalTargetInfo[] targets){var a=World.Get?.Ensure(BloodCaster);if(a==null)return;string id=def.defName;Pawn p=targets.Length>0?targets[0].Thing as Pawn:null;Thing t=targets.Length>0?targets[0].Thing:null;int n=Find.TickManager.TicksGame;float price=0;int count=0;List<Hediff> wounds=null;float transfer=0;BodyPartRecord regrowPart=null;
    switch(id){case "BA_Puddle":if(a.Puddle||!BloodCaster.Spawned)return;break;case "BA_Drain":if(!Rules.HasBlood(p)||p==BloodCaster)return;break;case "BA_Spear":if(t==null||t.Destroyed)return;price=12;break;case "BA_Control":if(!Rules.HasBlood(p)||!p.HostileTo(BloodCaster)||!p.RaceProps.Humanlike||p.IsPrisoner||World.Get.controls.Count(c=>c.owner==BloodCaster)>=2)return;price=25;break;case "BA_Transfuse":if(!Rules.HasBlood(p)||p.Faction!=BloodCaster.Faction)return;wounds=Rules.Wounds(p).ToList();transfer=Math.Min(30,Rules.Loss(p)*100);price=transfer+wounds.Sum(Rules.TendCost);break;case "BA_Regrow":if(!Rules.HasBlood(p)||p.Faction!=BloodCaster.Faction||!Rules.CanStartRegrowth(p))return;regrowPart=Rules.RegrowCandidate(p);price=40;break;case "BA_Bats":count=Rand.RangeInclusive(3,5);price=count*8;break;case "BA_Aura":if(!a.aura)price=20;break;}
    if(price>0&&!a.Pay(price)){Rules.Reject();return;}base.Cast(targets);if(BloodCaster.Dead)return;Rules.Pulse(p??BloodCaster);
-   switch(id){case "BA_Puddle":a.StartPuddle(n);break;case "BA_Fortify":a.fortify=!a.fortify;a.emergency=false;break;case "BA_Shield":a.shield=!a.shield;break;case "BA_Drain":bool consent=p.Downed||(p.Faction==BloodCaster.Faction&&!p.Drafted&&!p.IsPrisoner);float extracted=Rules.Drain(p,consent ? .4f : .1f);a.ReceiveDrain(extracted);if(extracted>0f&&!p.Dead)Rules.DrainCuts(p);break;case "BA_Spear":t.TakeDamage(new DamageInfo(DamageDefOf.Stab,45*Rules.Sens(BloodCaster)*BloodMod.Config.damage,.8f,-1,BloodCaster));if(p!=null&&!p.Dead&&Rules.HasBlood(p))Rules.Cut(p,BloodCaster,5*Rules.Sens(BloodCaster),.8f);break;case "BA_Control":var c=new Control{target=p,owner=BloodCaster,original=p.Faction,end=n+Mathf.RoundToInt(5400*Rules.Sens(BloodCaster)/Math.Max(.5f,Rules.Sens(p)))};p.jobs?.StopAll();p.SetFaction(BloodCaster.Faction);Rules.Status(p,"BA_Controlled",true);World.Get.controls.Add(c);break;case "BA_Transfuse":foreach(var w in wounds)if(p.health.hediffSet.hediffs.Contains(w))Rules.Tend(w,BloodCaster);Rules.SetLoss(p,Rules.Loss(p)-transfer/100);break;case "BA_Regrow":var grow=(Regrowth)HediffMaker.MakeHediff(DefDatabase<HediffDef>.GetNamed("BA_Regrowth"),p);grow.partIndex=regrowPart==null?-1:p.def.race.body.AllParts.IndexOf(regrowPart);grow.finishTick=n+30000;p.health.AddHediff(grow);break;case "BA_Bats":for(int i=0;i<count;i++)World.Get.SpawnBat(BloodCaster,BloodCaster.Position,BloodCaster.Map,n+10800);break;case "BA_Aura":a.aura=!a.aura;a.nextAura=n;a.nextUpkeep=n;break;}
+   switch(id){case "BA_Puddle":a.StartPuddle(n);break;case "BA_Fortify":a.fortify=!a.fortify;a.emergency=false;if(a.fortify){a.nextTend=Math.Max(a.nextTend,n+180);a.nextHeal=Math.Max(a.nextHeal,n+2500);}break;case "BA_Shield":a.shield=!a.shield;break;case "BA_Drain":bool consent=p.Downed||(p.Faction==BloodCaster.Faction&&!p.Drafted&&!p.IsPrisoner);float extracted=Rules.Drain(p,consent ? .4f : .1f);a.ReceiveDrain(extracted);if(extracted>0f&&!p.Dead)Rules.DrainCuts(p);break;case "BA_Spear":t.TakeDamage(new DamageInfo(DamageDefOf.Stab,45*Rules.Sens(BloodCaster)*BloodMod.Config.damage,.8f,-1,BloodCaster));if(p!=null&&!p.Dead&&Rules.HasBlood(p))Rules.Cut(p,BloodCaster,5*Rules.Sens(BloodCaster),.8f);break;case "BA_Control":var c=new Control{target=p,owner=BloodCaster,original=p.Faction,end=n+Mathf.RoundToInt(5400*Rules.Sens(BloodCaster)/Math.Max(.5f,Rules.Sens(p)))};p.jobs?.StopAll();p.SetFaction(BloodCaster.Faction);Rules.Status(p,"BA_Controlled",true);World.Get.controls.Add(c);break;case "BA_Transfuse":foreach(var w in wounds)if(p.health.hediffSet.hediffs.Contains(w))Rules.Tend(w,BloodCaster);Rules.SetLoss(p,Rules.Loss(p)-transfer/100);break;case "BA_Regrow":var grow=(Regrowth)HediffMaker.MakeHediff(DefDatabase<HediffDef>.GetNamed("BA_Regrowth"),p);grow.partIndex=regrowPart==null?-1:p.def.race.body.AllParts.IndexOf(regrowPart);grow.finishTick=n+30000;p.health.AddHediff(grow);break;case "BA_Bats":for(int i=0;i<count;i++)World.Get.SpawnBat(BloodCaster,BloodCaster.Position,BloodCaster.Map,n+10800);break;case "BA_Aura":a.aura=!a.aura;a.nextAura=n;a.nextUpkeep=n;break;}
   }
  }
  [StaticConstructorOnStartup] public static class Hooks {
-  static Hooks(){var h=new Harmony("domenklay.bloodarchon");var bleeding=AccessTools.TypeByName("Verse.HediffGiver_Bleeding")??AccessTools.TypeByName("RimWorld.HediffGiver_Bleeding");if(bleeding!=null)Try(h,AccessTools.Method(bleeding,"OnIntervalPassed",new[]{typeof(Pawn),typeof(Hediff)}),nameof(BleedStart),nameof(HealthEnd),nameof(HealthFinal));else Log.Warning("[BloodArchon] Natural bleeding giver not found; passive compensation disabled.");Try(h,AccessTools.Method(typeof(HealthUtility),"AdjustSeverity",new[]{typeof(Pawn),typeof(HediffDef),typeof(float)}),nameof(AdjustNatural),null); var methods=typeof(Pawn_HealthTracker).GetMethods(AccessTools.all).Where(m=>m.Name=="HealthTickInterval"||m.Name=="HealthTick").ToList();var tick=methods.FirstOrDefault(m=>m.Name=="HealthTickInterval")??methods.FirstOrDefault();Try(h,tick,nameof(HealthStart),null);Try(h,AccessTools.Method(typeof(Thing),"TakeDamage",new[]{typeof(DamageInfo)}),nameof(DamageStart),nameof(DamageEnd));Try(h,typeof(Pawn).GetMethods(AccessTools.all).FirstOrDefault(m=>m.Name=="Kill"&&m.GetParameters().Length>=1),nameof(KillStart),nameof(KillEnd));Try(h,AccessTools.Method(typeof(Pawn),"GetGizmos"),null,nameof(Gizmos));var render=typeof(PawnRenderer).GetMethods(AccessTools.all).FirstOrDefault(m=>m.Name=="RenderPawnAt"&&m.GetParameters().Length>0&&m.GetParameters()[0].ParameterType==typeof(Vector3));Try(h,render,nameof(RenderPuddle),null);}
+  static Hooks(){var h=new Harmony("domenklay.bloodarchon");var bleeding=AccessTools.TypeByName("Verse.HediffGiver_Bleeding")??AccessTools.TypeByName("RimWorld.HediffGiver_Bleeding");if(bleeding!=null)Try(h,AccessTools.Method(bleeding,"OnIntervalPassed",new[]{typeof(Pawn),typeof(Hediff)}),nameof(BleedStart),nameof(HealthEnd),nameof(HealthFinal));else Log.Warning("[BloodArchon] Natural bleeding giver not found; passive compensation disabled.");Try(h,AccessTools.Method(typeof(HealthUtility),"AdjustSeverity",new[]{typeof(Pawn),typeof(HediffDef),typeof(float)}),nameof(AdjustNatural),null);Try(h,AccessTools.Method(typeof(Thing),"TakeDamage",new[]{typeof(DamageInfo)}),nameof(DamageStart),nameof(DamageEnd));Try(h,typeof(Pawn).GetMethods(AccessTools.all).FirstOrDefault(m=>m.Name=="Kill"&&m.GetParameters().Length>=1),nameof(KillStart),nameof(KillEnd));Try(h,AccessTools.Method(typeof(Pawn),"GetGizmos"),null,nameof(Gizmos));var render=typeof(PawnRenderer).GetMethods(AccessTools.all).FirstOrDefault(m=>m.Name=="RenderPawnAt"&&m.GetParameters().Length>0&&m.GetParameters()[0].ParameterType==typeof(Vector3));Try(h,render,nameof(RenderPuddle),null);}
   static void Try(Harmony h,MethodBase method,string pre,string post,string final=null){if(method==null){Log.Warning("[BloodArchon] Missing hook: "+pre+"/"+post);return;}try{h.Patch(method,pre==null?null:new HarmonyMethod(typeof(Hooks),pre),post==null?null:new HarmonyMethod(typeof(Hooks),post),null,final==null?null:new HarmonyMethod(typeof(Hooks),final));}catch(Exception e){Log.Error("[BloodArchon] Hook failed: "+method+" "+e);}}
   static Graphic puddleGraphic;
   static FieldInfo rendererPawn=AccessTools.Field(typeof(PawnRenderer),"pawn");
   public static bool RenderPuddle(PawnRenderer __instance,Vector3 __0){var p=rendererPawn?.GetValue(__instance) as Pawn;if(p==null||!p.Spawned||World.Get?.Find(p)?.Puddle!=true)return true;try{if(puddleGraphic==null)puddleGraphic=GraphicDatabase.Get<Graphic_Single>("BloodArchon/Effects/Puddle",ShaderDatabase.Cutout,new Vector2(1.5f,1.5f),Color.white);puddleGraphic.Draw(__0,Rot4.South,p);return false;}catch(Exception e){Log.WarningOnce("[BloodArchon] Puddle rendering: "+e.Message,827176);return true;}}
   public static void BleedStart(Pawn __0,out Pawn __state){__state=Rules.naturalPawn;Rules.naturalPawn=__0;}
-  public static void HealthStart(Pawn ___pawn){if(___pawn==null||___pawn.Dead)return; var a=World.Get?.Find(___pawn); if(a==null&&___pawn.Faction==Faction.OfPlayer&&Rules.Has(___pawn,"BA_Fortify"))a=World.Get?.Ensure(___pawn); if(a!=null&&a.Critical)a.EmergencyStabilize(Find.TickManager.TicksGame);}
   public static void HealthEnd(Pawn __state){Rules.naturalPawn=__state;}
   public static Exception HealthFinal(Exception __exception,Pawn __state){Rules.naturalPawn=__state;return __exception;}
   // Only vanilla gradual bleeding/recovery may consume or refill the passive reserve.
   // Direct blood draws, bloodfeeding bites, and unrelated health changes are excluded.
-  public static void AdjustNatural(Pawn __0,HediffDef __1,ref float __2){if(Rules.explicitLoss||__0==null||__0!=Rules.naturalPawn||__1!=Rules.BloodDef||__2==0f)return;var a=World.Get?.Find(__0);if(a==null||__0.Dead)return;float old=Mathf.Clamp01(Rules.Loss(__0));float value=Mathf.Clamp01(old+__2);if(value>old&&a.Critical){a.Spend((value-old)*100f,true);value=old;}else value=a.RouteNatural(old,value);__2=value-old;}
+  public static void AdjustNatural(Pawn __0,HediffDef __1,ref float __2){if(Rules.explicitLoss||__0==null||__0!=Rules.naturalPawn||__1!=Rules.BloodDef||__2==0f)return;var a=World.Get?.Find(__0);if(a==null||__0.Dead)return;float old=Mathf.Clamp01(Rules.Loss(__0));float value=Mathf.Clamp01(old+__2);value=a.RouteNatural(old,value);__2=value-old;}
   public static bool DamageStart(Thing __instance,ref DamageInfo dinfo,ref DamageWorker.DamageResult __result){if(!(__instance is Pawn p))return true;var a=World.Get?.Find(p);if(a==null||!a.shield||p.Dead||dinfo.Amount<=0)return true;var name=dinfo.Def.defName;if(name=="Flame"||name=="Burn"||name=="Frostbite"||name=="ToxicBuildup")return true;float ratio=2*Rules.Sens(p)/BloodMod.Config.cost;float absorbed=a.Spend(dinfo.Amount/ratio)*ratio;float rest=Math.Max(0,dinfo.Amount-absorbed);if(rest<.001f){__result=new DamageWorker.DamageResult();return false;}a.shield=false;dinfo.SetAmount(rest);return true;}
   public static void DamageEnd(Thing __instance,DamageInfo dinfo,DamageWorker.DamageResult __result){if(__result==null||__result.totalDamageDealt<=0||!(dinfo.Instigator is Pawn attacker)||!(__instance is Pawn p))return;var b=World.Get?.bats.FirstOrDefault(x=>x.pawn==attacker);if(b!=null&&b.owner!=null&&p.HostileTo(b.owner)){if(!b.split)b.hits++;if(!p.Dead&&Rules.HasBlood(p)&&dinfo.Def!=DamageDefOf.Cut)Rules.Cut(p,b.owner,1.5f,.6f);}}
   public class DeathState {public Bat b;public Map map;public IntVec3 pos;}
@@ -201,7 +214,7 @@ namespace BloodArchon {
     float right=r.xMax-4f;
     if(a.aura&&right-15f>=x)right=Icon(right,y,ref auraIcon,"Aura","BA_AuraShort".Translate());
     if(a.shield&&right-15f>=x)right=Icon(right,y,ref shieldIcon,"Shield","BA_ShieldShort".Translate());
-    if(a.fortify&&right-15f>=x)right=Icon(right,y,ref fortifyIcon,"Fortify","BA_FortifyShort".Translate());
+    if((a.fortify||a.emergency)&&right-15f>=x)right=Icon(right,y,ref fortifyIcon,"Fortify","BA_FortifyShort".Translate());
     float labelWidth=Math.Max(0f,right-x-2f);
     string values=a.blood.ToString("0.#")+" / "+a.Max.ToString("0.#");
     string fullLabel="BA_Pool".Translate()+" "+values;

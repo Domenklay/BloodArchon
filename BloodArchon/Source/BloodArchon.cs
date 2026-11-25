@@ -174,43 +174,46 @@ namespace BloodArchon {
   public Archon a;
   static Texture2D fortifyIcon,shieldIcon,auraIcon;
   static readonly Color background=new Color(.14f,.055f,.075f);
-  static readonly Color empty=new Color(.055f,.025f,.035f);
+  static readonly Color empty=Color.black;
   static readonly Color reserve=new Color(.14f,.69f,.74f);
-  static readonly Color health=new Color(.78f,.10f,.14f);
-  static readonly Color body=new Color(.54f,.14f,.24f);
-  public override float GetWidth(float maxWidth)=>Math.Min(220f,maxWidth);
-  static void Bar(Rect r,float fraction,Color color,string label){
+  static readonly Color body=new Color(.72f,.12f,.19f);
+  public override float GetWidth(float maxWidth)=>Math.Min(190f,maxWidth);
+  static void Bar(Rect r,float fraction,Color color){
    Widgets.DrawBoxSolid(r,empty);
    float width=Mathf.Clamp01(fraction)*r.width;
    if(width>0f)Widgets.DrawBoxSolid(new Rect(r.x,r.y,width,r.height),color);
-   Text.Anchor=TextAnchor.MiddleCenter;
-   Widgets.Label(r,label);
   }
-  static float Icon(float x,float y,ref Texture2D icon,string path,string tip){
+  static float Icon(float right,float y,ref Texture2D icon,string path,string tip){
    if(icon==null)icon=ContentFinder<Texture2D>.Get("BloodArchon/Abilities/"+path);
-   var rect=new Rect(x,y,18f,18f);
+   var rect=new Rect(right-15f,y,15f,15f);
    if(icon!=null)GUI.DrawTexture(rect,icon,ScaleMode.ScaleToFit,true);
    TooltipHandler.TipRegion(rect,tip);
-   return x+21f;
+   return rect.x-2f;
   }
   public override GizmoResult GizmoOnGUI(Vector2 topLeft,float maxWidth,GizmoRenderParms parms){
-   // Keep the standard 75-pixel gizmo height: three labeled bars + icon strip.
    var r=new Rect(topLeft.x,topLeft.y,GetWidth(maxWidth),75f);
    if(r.width<20f||a?.pawn==null)return new GizmoResult(GizmoState.Clear);
    var previousFont=Text.Font;var previousAnchor=Text.Anchor;var previousColor=GUI.color;
    try{
-    GUI.color=Color.white;Text.Font=GameFont.Tiny;
+    GUI.color=Color.white;Text.Font=GameFont.Tiny;Text.Anchor=TextAnchor.UpperLeft;
     Widgets.DrawBoxSolid(r,background);
-    float x=r.x+4f,w=r.width-8f,y=r.y+3f;
-    float hp=Mathf.Clamp01(a.pawn.health.summaryHealth.SummaryHealthPercent);
+    float x=r.x+5f,w=r.width-10f,y=r.y+3f;
+    float right=r.xMax-4f;
+    if(a.aura&&right-15f>=x)right=Icon(right,y,ref auraIcon,"Aura","BA_AuraShort".Translate());
+    if(a.shield&&right-15f>=x)right=Icon(right,y,ref shieldIcon,"Shield","BA_ShieldShort".Translate());
+    if(a.fortify&&right-15f>=x)right=Icon(right,y,ref fortifyIcon,"Fortify","BA_FortifyShort".Translate());
+    float labelWidth=Math.Max(0f,right-x-2f);
+    string values=a.blood.ToString("0.#")+" / "+a.Max.ToString("0.#");
+    string fullLabel="BA_Pool".Translate()+" "+values;
+    if(labelWidth>0f){
+     var labelRect=new Rect(x,y,labelWidth,18f);
+     Widgets.Label(labelRect,Text.CalcSize(fullLabel).x<=labelWidth?fullLabel:values);
+     TooltipHandler.TipRegion(labelRect,fullLabel);
+    }
+    Bar(new Rect(x,r.y+23f,w,12f),a.blood/a.Max,reserve);
     float blood=Mathf.Clamp01(1f-Rules.Loss(a.pawn));
-    Bar(new Rect(x,y,w,16f),a.blood/a.Max,reserve,"BA_Pool".Translate()+" "+a.blood.ToString("F1")+" / "+a.Max.ToString("F0"));
-    Bar(new Rect(x,y+17f,w,16f),hp,health,"Health".Translate()+" "+hp.ToStringPercent());
-    Bar(new Rect(x,y+34f,w,16f),blood,body,"BA_Body".Translate()+" "+blood.ToStringPercent());
-    float ix=x;
-    if(a.fortify&&ix+18f<=r.xMax-4f)ix=Icon(ix,y+51f,ref fortifyIcon,"Fortify","BA_FortifyShort".Translate());
-    if(a.shield&&ix+18f<=r.xMax-4f)ix=Icon(ix,y+51f,ref shieldIcon,"Shield","BA_ShieldShort".Translate());
-    if(a.aura&&ix+18f<=r.xMax-4f)ix=Icon(ix,y+51f,ref auraIcon,"Aura","BA_AuraShort".Translate());
+    Widgets.Label(new Rect(x,r.y+38f,w,18f),"BA_Body".Translate()+" "+blood.ToStringPercent());
+    Bar(new Rect(x,r.y+56f,w,12f),blood,body);
    }finally{Text.Font=previousFont;Text.Anchor=previousAnchor;GUI.color=previousColor;}
    return new GizmoResult(GizmoState.Clear);
   }

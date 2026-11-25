@@ -39,24 +39,21 @@ namespace BloodArchon {
   public void StartPuddle(int now){puddleEnd=now+600;puddleNext=now+30;if(pawn.drafter!=null)pawn.drafter.Drafted=false;pawn.jobs?.StopAll();Rules.Status(pawn,"BA_PuddleForm",true);foreach(var wound in Rules.Wounds(pawn).ToList())if(pawn.health.hediffSet.hediffs.Contains(wound))wound.Tended(1f,1f,1);}
   public void TickPuddle(int now){if(!pawn.Spawned){puddleEnd=0;Rules.Status(pawn,"BA_PuddleForm",false);return;} Rules.Status(pawn,"BA_PuddleForm",true);while(puddleNext<=now&&puddleNext<=puddleEnd){puddleNext+=30;Rules.SetLoss(pawn,Math.Max(0,Rules.Loss(pawn)-.05f));blood=Math.Min(Max,blood+Max*.05f);foreach(var w in Rules.Wounds(pawn).Where(h=>h.BleedRate>0f).ToList())if(pawn.health.hediffSet.hediffs.Contains(w))w.Tended(1f,1f,1);foreach(var injury in pawn.health.hediffSet.hediffs.OfType<Hediff_Injury>().ToList())if(pawn.health.hediffSet.hediffs.Contains(injury)){if(injury.IsPermanent()){injury.Severity=Math.Max(0,injury.Severity-1f);if(injury.Severity<=.001f&&pawn.health.hediffSet.hediffs.Contains(injury))pawn.health.RemoveHediff(injury);}else injury.Heal(2f);}}if(now>=puddleEnd){puddleEnd=0;Rules.Status(pawn,"BA_PuddleForm",false);Rules.Pulse(pawn,2f);}}
   public bool Has(string suffix)=>Rules.Has(pawn,"BA_"+suffix);
-  // Emergency treatment is independent of the manually activated fortification.
+  // Emergency clotting never activates the manual buff or changes pain.
   public bool Critical=>pawn!=null&&!pawn.Dead&&Has("Fortify")&&(pawn.Downed||Rules.Loss(pawn)>=.60f)&&pawn.health.hediffSet.BleedRateTotal>.00001f;
   public void TickFortify(int now){
    bool critical=Critical;
    if(!fortify&&critical&&!emergency){
     emergency=true;
-    nextTend=Math.Max(nextTend,now+120);
+    nextTend=Math.Max(nextTend,now+600);
    }
    if(!critical||fortify)emergency=false;
-   // Only the manually enabled buff changes pain, preventing automatic down/up loops.
    Rules.Status(pawn,"BA_Fortified",fortify);
    if(!fortify&&!emergency)return;
    if(now>=nextTend){
-    nextTend=now+180;
+    nextTend=now+(emergency?600:300);
     var wound=Rules.Wounds(pawn).FirstOrDefault(h=>!emergency||h.BleedRate>.00001f);
     if(wound!=null&&pawn.health.hediffSet.hediffs.Contains(wound)){
-     // One wound per interval; critical clotting may still work on an empty pool.
-     // It never restores injury severity or consumes body blood.
      if(critical&&wound.BleedRate>.00001f){
       Spend(Rules.TendCost(wound)*BloodMod.Config.cost,true);
       Rules.Tend(wound,pawn);
@@ -161,7 +158,7 @@ namespace BloodArchon {
   public override void Cast(params GlobalTargetInfo[] targets){var a=World.Get?.Ensure(BloodCaster);if(a==null)return;string id=def.defName;Pawn p=targets.Length>0?targets[0].Thing as Pawn:null;Thing t=targets.Length>0?targets[0].Thing:null;int n=Find.TickManager.TicksGame;float price=0;int count=0;List<Hediff> wounds=null;float transfer=0;BodyPartRecord regrowPart=null;
    switch(id){case "BA_Puddle":if(a.Puddle||!BloodCaster.Spawned)return;break;case "BA_Drain":if(!Rules.HasBlood(p)||p==BloodCaster)return;break;case "BA_Spear":if(t==null||t.Destroyed)return;price=12;break;case "BA_Control":if(!Rules.HasBlood(p)||!p.HostileTo(BloodCaster)||!p.RaceProps.Humanlike||p.IsPrisoner||World.Get.controls.Count(c=>c.owner==BloodCaster)>=2)return;price=25;break;case "BA_Transfuse":if(!Rules.HasBlood(p)||p.Faction!=BloodCaster.Faction)return;wounds=Rules.Wounds(p).ToList();transfer=Math.Min(30,Rules.Loss(p)*100);price=transfer+wounds.Sum(Rules.TendCost);break;case "BA_Regrow":if(!Rules.HasBlood(p)||p.Faction!=BloodCaster.Faction||!Rules.CanStartRegrowth(p))return;regrowPart=Rules.RegrowCandidate(p);price=40;break;case "BA_Bats":count=Rand.RangeInclusive(3,5);price=count*8;break;case "BA_Aura":if(!a.aura)price=20;break;}
    if(price>0&&!a.Pay(price)){Rules.Reject();return;}base.Cast(targets);if(BloodCaster.Dead)return;Rules.Pulse(p??BloodCaster);
-   switch(id){case "BA_Puddle":a.StartPuddle(n);break;case "BA_Fortify":a.fortify=!a.fortify;a.emergency=false;if(a.fortify){a.nextTend=Math.Max(a.nextTend,n+180);a.nextHeal=Math.Max(a.nextHeal,n+2500);}break;case "BA_Shield":a.shield=!a.shield;break;case "BA_Drain":bool consent=p.Downed||(p.Faction==BloodCaster.Faction&&!p.Drafted&&!p.IsPrisoner);float extracted=Rules.Drain(p,consent ? .4f : .1f);a.ReceiveDrain(extracted);if(extracted>0f&&!p.Dead)Rules.DrainCuts(p);break;case "BA_Spear":t.TakeDamage(new DamageInfo(DamageDefOf.Stab,45*Rules.Sens(BloodCaster)*BloodMod.Config.damage,.8f,-1,BloodCaster));if(p!=null&&!p.Dead&&Rules.HasBlood(p))Rules.Cut(p,BloodCaster,5*Rules.Sens(BloodCaster),.8f);break;case "BA_Control":var c=new Control{target=p,owner=BloodCaster,original=p.Faction,end=n+Mathf.RoundToInt(5400*Rules.Sens(BloodCaster)/Math.Max(.5f,Rules.Sens(p)))};p.jobs?.StopAll();p.SetFaction(BloodCaster.Faction);Rules.Status(p,"BA_Controlled",true);World.Get.controls.Add(c);break;case "BA_Transfuse":foreach(var w in wounds)if(p.health.hediffSet.hediffs.Contains(w))Rules.Tend(w,BloodCaster);Rules.SetLoss(p,Rules.Loss(p)-transfer/100);break;case "BA_Regrow":var grow=(Regrowth)HediffMaker.MakeHediff(DefDatabase<HediffDef>.GetNamed("BA_Regrowth"),p);grow.partIndex=regrowPart==null?-1:p.def.race.body.AllParts.IndexOf(regrowPart);grow.finishTick=n+30000;p.health.AddHediff(grow);break;case "BA_Bats":for(int i=0;i<count;i++)World.Get.SpawnBat(BloodCaster,BloodCaster.Position,BloodCaster.Map,n+10800);break;case "BA_Aura":a.aura=!a.aura;a.nextAura=n;a.nextUpkeep=n;break;}
+   switch(id){case "BA_Puddle":a.StartPuddle(n);break;case "BA_Fortify":a.fortify=!a.fortify;a.emergency=false;if(a.fortify){a.nextTend=Math.Max(a.nextTend,n+300);a.nextHeal=Math.Max(a.nextHeal,n+2500);}break;case "BA_Shield":a.shield=!a.shield;break;case "BA_Drain":bool consent=p.Downed||(p.Faction==BloodCaster.Faction&&!p.Drafted&&!p.IsPrisoner);float extracted=Rules.Drain(p,consent ? .4f : .1f);a.ReceiveDrain(extracted);if(extracted>0f&&!p.Dead)Rules.DrainCuts(p);break;case "BA_Spear":t.TakeDamage(new DamageInfo(DamageDefOf.Stab,45*Rules.Sens(BloodCaster)*BloodMod.Config.damage,.8f,-1,BloodCaster));if(p!=null&&!p.Dead&&Rules.HasBlood(p))Rules.Cut(p,BloodCaster,5*Rules.Sens(BloodCaster),.8f);break;case "BA_Control":var c=new Control{target=p,owner=BloodCaster,original=p.Faction,end=n+Mathf.RoundToInt(5400*Rules.Sens(BloodCaster)/Math.Max(.5f,Rules.Sens(p)))};p.jobs?.StopAll();p.SetFaction(BloodCaster.Faction);Rules.Status(p,"BA_Controlled",true);World.Get.controls.Add(c);break;case "BA_Transfuse":foreach(var w in wounds)if(p.health.hediffSet.hediffs.Contains(w))Rules.Tend(w,BloodCaster);Rules.SetLoss(p,Rules.Loss(p)-transfer/100);break;case "BA_Regrow":var grow=(Regrowth)HediffMaker.MakeHediff(DefDatabase<HediffDef>.GetNamed("BA_Regrowth"),p);grow.partIndex=regrowPart==null?-1:p.def.race.body.AllParts.IndexOf(regrowPart);grow.finishTick=n+30000;p.health.AddHediff(grow);break;case "BA_Bats":for(int i=0;i<count;i++)World.Get.SpawnBat(BloodCaster,BloodCaster.Position,BloodCaster.Map,n+10800);break;case "BA_Aura":a.aura=!a.aura;a.nextAura=n;a.nextUpkeep=n;break;}
   }
  }
  [StaticConstructorOnStartup] public static class Hooks {
@@ -214,7 +211,7 @@ namespace BloodArchon {
     float right=r.xMax-4f;
     if(a.aura&&right-15f>=x)right=Icon(right,y,ref auraIcon,"Aura","BA_AuraShort".Translate());
     if(a.shield&&right-15f>=x)right=Icon(right,y,ref shieldIcon,"Shield","BA_ShieldShort".Translate());
-    if((a.fortify||a.emergency)&&right-15f>=x)right=Icon(right,y,ref fortifyIcon,"Fortify","BA_FortifyShort".Translate());
+    if(a.fortify&&right-15f>=x)right=Icon(right,y,ref fortifyIcon,"Fortify","BA_FortifyShort".Translate());
     float labelWidth=Math.Max(0f,right-x-2f);
     string values=a.blood.ToString("0.#")+" / "+a.Max.ToString("0.#");
     string fullLabel="BA_Pool".Translate()+" "+values;

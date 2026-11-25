@@ -12,7 +12,7 @@
     </li></modExtensions>
   </VEF.Abilities.AbilityDef>
   <VEF.Abilities.AbilityDef ParentName="VPE_PsycastBase">
-    <defName>BA_Drain</defName><label>drain blood</label><description>Drains 10% of a resisting target’s total blood or 40% from a downed or willing target. Uses vanilla blood loss and death rules.</description>
+    <defName>BA_Drain</defName><label>drain blood</label><description>Drains 10% of a resisting target’s total blood or 40% from a downed or willing target. Fills the blood reserve first; overflow restores body blood. Adds 2–3 bleeding cuts that bypass armor. Yield depends on body size. Uses vanilla blood loss and death rules.</description>
     <iconPath>BloodArchon/Abilities/Drain</iconPath><abilityClass>BloodArchon.BloodAbility</abilityClass>
     <range>12</range><castTime>90</castTime><cooldownTime>360</cooldownTime><targetMode>Pawn</targetMode>
     <showUndrafted>true</showUndrafted><chance>0</chance>

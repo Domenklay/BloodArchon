@@ -2,52 +2,42 @@ name: Build Blood Archon
 on:
   workflow_dispatch:
   push:
-    paths:
-      - 'BloodArchon/**'
-      - 'build-refs/**'
-      - 'BloodArchon_GitHub_Actions_private.zip'
-      - '.github/workflows/build.yml'
+    paths: ['BloodArchon/**', '.github/workflows/build.yml', 'tools/**']
 permissions:
   contents: read
+concurrency:
+  group: bloodarchon-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   compile:
-    runs-on: windows-latest
-    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - name: Extract project archive if present
-        shell: pwsh
+      - name: Fetch public mod dependencies
         run: |
-          $zip = 'BloodArchon_GitHub_Actions_private.zip'
-          if (Test-Path $zip) {
-            Expand-Archive $zip -DestinationPath .ci-source -Force
-            Copy-Item .ci-source/BloodArchon . -Recurse -Force
-            Copy-Item .ci-source/build-refs . -Recurse -Force
-          }
-          if (!(Test-Path BloodArchon/Source/BloodArchon.csproj) -or !(Test-Path build-refs/Assembly-CSharp.dll)) {
-            throw 'Missing project or game references. Supply the prepared build package in a private repository.'
-          }
+          mkdir -p build-refs
+          curl --fail --retry 3 -L https://raw.githubusercontent.com/Vanilla-Expanded/VanillaExpandedFramework/main/1.7/Assemblies/VEF.dll -o build-refs/VEF.dll
+          curl --fail --retry 3 -L https://raw.githubusercontent.com/Vanilla-Expanded/VanillaPsycastsExpanded/main/1.7/Assemblies/VanillaPsycastsExpanded.dll -o build-refs/VanillaPsycastsExpanded.dll
       - name: Compile mod DLL
-        shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
-          $refs = Join-Path $PWD 'build-refs'
-          dotnet build BloodArchon/Source/BloodArchon.csproj -c Release "-p:GameRoot=$refs" "-p:HarmonyDll=$refs/0Harmony.dll" "-p:VefDll=$refs/VEF.dll" "-p:VpeDll=$refs/VanillaPsycastsExpanded.dll"
-          if ($LASTEXITCODE -ne 0) { throw 'Compilation failed' }
-          if (!(Test-Path BloodArchon/1.7/Assemblies/BloodArchon.dll)) { throw 'Missing compiled mod' }
-      - name: Prepare installable mod
-        shell: pwsh
+          dotnet build BloodArchon/Source/BloodArchon.csproj -c Release "-p:VefDll=$PWD/build-refs/VEF.dll" "-p:VpeDll=$PWD/build-refs/VanillaPsycastsExpanded.dll"
+          test -s BloodArchon/1.7/Assemblies/BloodArchon.dll
+      - name: Upload DLL
+        uses: actions/upload-artifact@v4
+        with:
+          name: BloodArchon-DLL
+          path: BloodArchon/1.7/Assemblies/BloodArchon.dll
+          if-no-files-found: error
+      - name: Prepare mod
         run: |
-          $ErrorActionPreference = 'Stop'
-          $dst = 'dist/BloodArchon'
-          New-Item -ItemType Directory -Force $dst | Out-Null
-          foreach ($item in @('About','Languages','Textures','LoadFolders.xml','1.7')) {
-            Copy-Item "BloodArchon/$item" $dst -Recurse -Force
-          }
-          Get-ChildItem "$dst/1.7/Assemblies" -File | Where-Object { $_.Name -ne 'BloodArchon.dll' } | Remove-Item
+          mkdir -p dist/BloodArchon
+          cp -r BloodArchon/{About,Languages,LoadFolders.xml,1.7} dist/BloodArchon/
+          if [ -d BloodArchon/Textures ]; then cp -r BloodArchon/Textures dist/BloodArchon/; fi
+          find dist/BloodArchon/1.7/Assemblies -type f ! -name BloodArchon.dll -delete
       - uses: actions/upload-artifact@v4
         with:
           name: BloodArchon-RimWorld-1.7

@@ -171,7 +171,48 @@ namespace BloodArchon {
   public static IEnumerable<Gizmo> Gizmos(IEnumerable<Gizmo> __result,Pawn __instance){foreach(var g in __result)yield return g;if(__instance.Faction!=Faction.OfPlayer||!Rules.IsArchon(__instance))yield break;var a=World.Get?.Ensure(__instance);if(a!=null){yield return new BloodGizmo{a=a};var pack=__instance.inventory?.innerContainer.FirstOrDefault(t=>t.def.defName=="HemogenPack");if(pack!=null)yield return new Command_Action{defaultLabel="BA_Pack".Translate(),defaultDesc="BA_PackDesc".Translate(),icon=ContentFinder<Texture2D>.Get("BloodArchon/Abilities/Reserve"),action=()=>{if(pack.Destroyed||!__instance.inventory.innerContainer.Contains(pack))return;if(a.blood>=a.Max&&Rules.Loss(__instance)<=0)return;pack.SplitOff(1).Destroy();a.Receive(20);}};}}
  }
  public class BloodGizmo : Gizmo {
-  public Archon a; public override float GetWidth(float maxWidth)=>Math.Min(190,maxWidth);
-  public override GizmoResult GizmoOnGUI(Vector2 topLeft,float maxWidth,GizmoRenderParms parms){var r=new Rect(topLeft.x,topLeft.y,GetWidth(maxWidth),75);Widgets.DrawBoxSolid(r,new Color(.14f,.055f,.075f));Text.Font=GameFont.Tiny;Widgets.Label(new Rect(r.x+6,r.y+3,r.width-12,20),"BA_Pool".Translate()+" "+a.blood.ToString("F1")+" / "+a.Max.ToString("F0"));Widgets.FillableBar(new Rect(r.x+6,r.y+23,r.width-12,12),a.blood/a.Max);Widgets.Label(new Rect(r.x+6,r.y+37,r.width-12,20),"BA_Body".Translate()+" "+(1-Rules.Loss(a.pawn)).ToStringPercent());Widgets.Label(new Rect(r.x+6,r.y+54,r.width-12,18),(a.fortify?"+ ":"– ")+"BA_FortifyShort".Translate()+"  "+(a.shield?"+ ":"– ")+"BA_ShieldShort".Translate()+"  "+(a.aura?"+ ":"– ")+"BA_AuraShort".Translate());Text.Font=GameFont.Small;return new GizmoResult(GizmoState.Clear);}
+  public Archon a;
+  static Texture2D fortifyIcon,shieldIcon,auraIcon;
+  static readonly Color background=new Color(.14f,.055f,.075f);
+  static readonly Color empty=new Color(.055f,.025f,.035f);
+  static readonly Color reserve=new Color(.14f,.69f,.74f);
+  static readonly Color health=new Color(.78f,.10f,.14f);
+  static readonly Color body=new Color(.54f,.14f,.24f);
+  public override float GetWidth(float maxWidth)=>Math.Min(220f,maxWidth);
+  static void Bar(Rect r,float fraction,Color color,string label){
+   Widgets.DrawBoxSolid(r,empty);
+   float width=Mathf.Clamp01(fraction)*r.width;
+   if(width>0f)Widgets.DrawBoxSolid(new Rect(r.x,r.y,width,r.height),color);
+   Text.Anchor=TextAnchor.MiddleCenter;
+   Widgets.Label(r,label);
+  }
+  static float Icon(float x,float y,ref Texture2D icon,string path,string tip){
+   if(icon==null)icon=ContentFinder<Texture2D>.Get("BloodArchon/Abilities/"+path);
+   var rect=new Rect(x,y,18f,18f);
+   if(icon!=null)GUI.DrawTexture(rect,icon,ScaleMode.ScaleToFit,true);
+   TooltipHandler.TipRegion(rect,tip);
+   return x+21f;
+  }
+  public override GizmoResult GizmoOnGUI(Vector2 topLeft,float maxWidth,GizmoRenderParms parms){
+   // Keep the standard 75-pixel gizmo height: three labeled bars + icon strip.
+   var r=new Rect(topLeft.x,topLeft.y,GetWidth(maxWidth),75f);
+   if(r.width<20f||a?.pawn==null)return new GizmoResult(GizmoState.Clear);
+   var previousFont=Text.Font;var previousAnchor=Text.Anchor;var previousColor=GUI.color;
+   try{
+    GUI.color=Color.white;Text.Font=GameFont.Tiny;
+    Widgets.DrawBoxSolid(r,background);
+    float x=r.x+4f,w=r.width-8f,y=r.y+3f;
+    float hp=Mathf.Clamp01(a.pawn.health.summaryHealth.SummaryHealthPercent);
+    float blood=Mathf.Clamp01(1f-Rules.Loss(a.pawn));
+    Bar(new Rect(x,y,w,16f),a.blood/a.Max,reserve,"BA_Pool".Translate()+" "+a.blood.ToString("F1")+" / "+a.Max.ToString("F0"));
+    Bar(new Rect(x,y+17f,w,16f),hp,health,"Health".Translate()+" "+hp.ToStringPercent());
+    Bar(new Rect(x,y+34f,w,16f),blood,body,"BA_Body".Translate()+" "+blood.ToStringPercent());
+    float ix=x;
+    if(a.fortify&&ix+18f<=r.xMax-4f)ix=Icon(ix,y+51f,ref fortifyIcon,"Fortify","BA_FortifyShort".Translate());
+    if(a.shield&&ix+18f<=r.xMax-4f)ix=Icon(ix,y+51f,ref shieldIcon,"Shield","BA_ShieldShort".Translate());
+    if(a.aura&&ix+18f<=r.xMax-4f)ix=Icon(ix,y+51f,ref auraIcon,"Aura","BA_AuraShort".Translate());
+   }finally{Text.Font=previousFont;Text.Anchor=previousAnchor;GUI.color=previousColor;}
+   return new GizmoResult(GizmoState.Clear);
+  }
  }
 }

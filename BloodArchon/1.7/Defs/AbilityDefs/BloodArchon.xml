@@ -88,4 +88,11 @@
       <prerequisites><li>BA_Bats</li></prerequisites>
     </li></modExtensions>
   </VEF.Abilities.AbilityDef>
+  <VEF.Abilities.AbilityDef ParentName="VPE_PsycastBase">
+    <defName>BA_Regrow</defName><label>blood rebirth</label><description>Regrows one missing natural body part over 12 in-game hours, prioritizing larger parts. Never replaces prostheses or implants. Costs 40 blood.</description>
+    <iconPath>BloodArchon/Abilities/Regrow</iconPath><abilityClass>BloodArchon.BloodAbility</abilityClass>
+    <range>10</range><castTime>120</castTime><cooldownTime>60000</cooldownTime><targetMode>Pawn</targetMode><showUndrafted>true</showUndrafted><chance>0</chance>
+    <targetingParameters><canTargetPawns>true</canTargetPawns><canTargetHumans>true</canTargetHumans><canTargetAnimals>true</canTargetAnimals><canTargetMechs>false</canTargetMechs><canTargetSelf>true</canTargetSelf><canTargetLocations>false</canTargetLocations><canTargetBuildings>false</canTargetBuildings></targetingParameters>
+    <modExtensions><li Class="VanillaPsycastsExpanded.AbilityExtension_Psycast"><path>BA_BloodArchon</path><level>5</level><order>2</order><psyfocusCost>0.08</psyfocusCost><entropyGain>0</entropyGain><psychic>true</psychic><prerequisites><li>BA_Bats</li></prerequisites></li></modExtensions>
+  </VEF.Abilities.AbilityDef>
 </Defs>

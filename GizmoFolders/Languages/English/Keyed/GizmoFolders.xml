@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <GF_Manage>Manage folders</GF_Manage>
+  <GF_Folders>Folders</GF_Folders>
+  <GF_OpenTip>Click to expand or collapse.</GF_OpenTip>
+  <GF_ManageTip>Right-click to manage folders.</GF_ManageTip>
+  <GF_Instructions>Create a folder, then choose it beside each command. Deleting a folder returns its commands to the panel.</GF_Instructions>
+  <GF_Create>Create</GF_Create>
+  <GF_Choose>Choose folder</GF_Choose>
+  <GF_Rename>Rename</GF_Rename>
+  <GF_Delete>Delete</GF_Delete>
+  <GF_Search>Search</GF_Search>
+  <GF_Unfiled>On panel</GF_Unfiled>
+</LanguageData>

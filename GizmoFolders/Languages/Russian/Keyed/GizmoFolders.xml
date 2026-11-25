@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <GF_Manage>Управление папками</GF_Manage>
+  <GF_Folders>Папки</GF_Folders>
+  <GF_OpenTip>Нажмите, чтобы раскрыть или свернуть.</GF_OpenTip>
+  <GF_ManageTip>ПКМ — управление папками.</GF_ManageTip>
+  <GF_Instructions>Создайте папку и выберите её напротив нужных команд. Удаление папки вернёт все её кнопки на панель.</GF_Instructions>
+  <GF_Create>Создать</GF_Create>
+  <GF_Choose>Выбрать папку</GF_Choose>
+  <GF_Rename>Имя</GF_Rename>
+  <GF_Delete>Удалить</GF_Delete>
+  <GF_Search>Поиск</GF_Search>
+  <GF_Unfiled>На панели</GF_Unfiled>
+</LanguageData>

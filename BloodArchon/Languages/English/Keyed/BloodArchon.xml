@@ -16,4 +16,6 @@
   <BA_AuraShort>Aura</BA_AuraShort>
   <BA_Pack>Use blood pack</BA_Pack>
   <BA_PackDesc>Consume one hemogen pack from inventory to restore 20 blood.</BA_PackDesc>
+  <BA_PuddleUnavailable>The caster must be alive and on the map.</BA_PuddleUnavailable>
+  <BA_PuddlePending>Transformation is already preparing or active.</BA_PuddlePending>
 </LanguageData>

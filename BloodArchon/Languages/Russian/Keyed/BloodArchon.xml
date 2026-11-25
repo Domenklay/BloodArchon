@@ -16,4 +16,6 @@
   <BA_AuraShort>Аура</BA_AuraShort>
   <BA_Pack>Использовать пакет крови</BA_Pack>
   <BA_PackDesc>Расходует один пакет гемогена из инвентаря и восстанавливает 20 единиц крови.</BA_PackDesc>
+  <BA_PuddleUnavailable>Для превращения персонаж должен быть жив и находиться на карте.</BA_PuddleUnavailable>
+  <BA_PuddlePending>Превращение уже начато или активно.</BA_PuddlePending>
 </LanguageData>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Defs>
   <VEF.Abilities.AbilityDef ParentName="VPE_PsycastBase">
-    <defName>BA_Fortify</defName><label>blood fortification</label><description>Manually activated: tends one wound every 3 seconds, prioritizing bleeding, then slowly heals injuries and reduces pain. If downed and bleeding or bleeding with at least 60% blood loss, emergency clotting treats one bleeding wound at a time after a short delay, even with an empty reserve. Emergency mode neither reduces pain nor heals injuries; blood loss remains possible.</description>
+    <defName>BA_Fortify</defName><label>blood fortification</label><description>Manually activated: tends one wound every 5 seconds, prioritizing bleeding, then slowly heals injuries and reduces pain. If downed and bleeding or bleeding with at least 60% blood loss, emergency clotting treats one bleeding wound every 10 seconds, even with an empty reserve. Emergency mode does not activate fortification, reduce pain or heal injuries; blood loss continues until wounds are tended.</description>
     <iconPath>BloodArchon/Abilities/Fortify</iconPath><abilityClass>BloodArchon.BloodAbility</abilityClass>
     <range>0</range><castTime>15</castTime><cooldownTime>120</cooldownTime><targetMode>Self</targetMode>
     <showUndrafted>true</showUndrafted><chance>0</chance>

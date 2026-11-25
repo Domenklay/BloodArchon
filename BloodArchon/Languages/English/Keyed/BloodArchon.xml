@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <BA_Title>Blood Archon</BA_Title>
+  <BA_Capacity>Base reserve</BA_Capacity>
+  <BA_PerLevel>Reserve per level</BA_PerLevel>
+  <BA_Compensation>Bleeding compensation</BA_Compensation>
+  <BA_Cost>Blood cost multiplier</BA_Cost>
+  <BA_Damage>Damage multiplier</BA_Damage>
+  <BA_UseBody>Use body blood when reserve is empty</BA_UseBody>
+  <BA_Safety>Prevent self-drain above 60% blood loss</BA_Safety>
+  <BA_NotEnough>Not enough blood</BA_NotEnough>
+  <BA_Pool>Blood reserve</BA_Pool>
+  <BA_Body>Body blood</BA_Body>
+  <BA_FortifyShort>Fortify</BA_FortifyShort>
+  <BA_ShieldShort>Shield</BA_ShieldShort>
+  <BA_AuraShort>Aura</BA_AuraShort>
+  <BA_Pack>Use blood pack</BA_Pack>
+  <BA_PackDesc>Consume one hemogen pack from inventory to restore 20 blood.</BA_PackDesc>
+</LanguageData>

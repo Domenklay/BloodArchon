@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <BA_Title>Архонт крови</BA_Title>
+  <BA_Capacity>Базовый запас</BA_Capacity>
+  <BA_PerLevel>Запас за уровень</BA_PerLevel>
+  <BA_Compensation>Компенсация кровопотери</BA_Compensation>
+  <BA_Cost>Множитель расхода крови</BA_Cost>
+  <BA_Damage>Множитель урона</BA_Damage>
+  <BA_UseBody>Расходовать кровь организма при пустом запасе</BA_UseBody>
+  <BA_Safety>Не расходовать свою кровь при кровопотере свыше 60%</BA_Safety>
+  <BA_NotEnough>Недостаточно крови</BA_NotEnough>
+  <BA_Pool>Запас крови</BA_Pool>
+  <BA_Body>Кровь организма</BA_Body>
+  <BA_FortifyShort>Леч.</BA_FortifyShort>
+  <BA_ShieldShort>Щит</BA_ShieldShort>
+  <BA_AuraShort>Аура</BA_AuraShort>
+  <BA_Pack>Использовать пакет крови</BA_Pack>
+  <BA_PackDesc>Расходует один пакет гемогена из инвентаря и восстанавливает 20 единиц крови.</BA_PackDesc>
+</LanguageData>

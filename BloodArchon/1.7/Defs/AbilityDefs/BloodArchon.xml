@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <VEF.Abilities.AbilityDef ParentName="VPE_PsycastBase">
+    <defName>BA_Fortify</defName><label>blood fortification</label><description>Automatically tends bleeding wounds first, then accelerates healing and reduces pain. Activates when downed.</description>
+    <iconPath>BloodArchon/Abilities/Fortify</iconPath><abilityClass>BloodArchon.BloodAbility</abilityClass>
+    <range>0</range><castTime>15</castTime><cooldownTime>120</cooldownTime><targetMode>Self</targetMode>
+    <showUndrafted>true</showUndrafted><chance>0</chance>
+    
+    <modExtensions><li Class="VanillaPsycastsExpanded.AbilityExtension_Psycast">
+      <path>BA_BloodArchon</path><level>1</level><order>2</order><psyfocusCost>0.01</psyfocusCost><entropyGain>0</entropyGain><psychic>true</psychic>
+      
+    </li></modExtensions>
+  </VEF.Abilities.AbilityDef>
+  <VEF.Abilities.AbilityDef ParentName="VPE_PsycastBase">
+    <defName>BA_Drain</defName><label>drain blood</label><description>Drains 10% of a resisting target’s total blood or 40% from a downed or willing target. Uses vanilla blood loss and death rules.</description>
+    <iconPath>BloodArchon/Abilities/Drain</iconPath><abilityClass>BloodArchon.BloodAbility</abilityClass>
+    <range>12</range><castTime>90</castTime><cooldownTime>360</cooldownTime><targetMode>Pawn</targetMode>
+    <showUndrafted>true</showUndrafted><chance>0</chance>
+    <targetingParameters><canTargetPawns>true</canTargetPawns><canTargetHumans>true</canTargetHumans><canTargetAnimals>true</canTargetAnimals><canTargetMechs>false</canTargetMechs><canTargetBuildings>false</canTargetBuildings><canTargetLocations>false</canTargetLocations><canTargetSelf>false</canTargetSelf></targetingParameters>
+    <modExtensions><li Class="VanillaPsycastsExpanded.AbilityExtension_Psycast">
+      <path>BA_BloodArchon</path><level>1</level><order>1</order><psyfocusCost>0.01</psyfocusCost><entropyGain>0</entropyGain><psychic>true</psychic>
+      
+    </li></modExtensions>
+  </VEF.Abilities.AbilityDef>
+  <VEF.Abilities.AbilityDef ParentName="VPE_PsycastBase">
+    <defName>BA_Shield</defName><label>blood shield</label><description>Absorbs incoming attacks at a rate of two damage per unit of blood at 100% psychic sensitivity.</description>
+    <iconPath>BloodArchon/Abilities/Shield</iconPath><abilityClass>BloodArchon.BloodAbility</abilityClass>
+    <range>0</range><castTime>15</castTime><cooldownTime>120</cooldownTime><targetMode>Self</targetMode>
+    <showUndrafted>true</showUndrafted><chance>0</chance>
+    
+    <modExtensions><li Class="VanillaPsycastsExpanded.AbilityExtension_Psycast">
+      <path>BA_BloodArchon</path><level>2</level><order>2</order><psyfocusCost>0.01</psyfocusCost><entropyGain>0</entropyGain><psychic>true</psychic>
+      <prerequisites><li>BA_Fortify</li></prerequisites>
+    </li></modExtensions>
+  </VEF.Abilities.AbilityDef>
+  <VEF.Abilities.AbilityDef ParentName="VPE_PsycastBase">
+    <defName>BA_Spear</defName><label>blood spear</label><description>A long-range piercing strike. Base damage 45, armor penetration 80%, costs 12 blood. Adds a bleeding wound to flesh targets.</description>
+    <iconPath>BloodArchon/Abilities/Spear</iconPath><abilityClass>BloodArchon.BloodAbility</abilityClass>
+    <range>40</range><castTime>48</castTime><cooldownTime>300</cooldownTime><targetMode>Pawn</targetMode>
+    <showUndrafted>true</showUndrafted><chance>0</chance>
+    <targetingParameters><canTargetPawns>true</canTargetPawns><canTargetHumans>true</canTargetHumans><canTargetAnimals>true</canTargetAnimals><canTargetMechs>true</canTargetMechs><canTargetBuildings>false</canTargetBuildings><canTargetLocations>false</canTargetLocations><canTargetSelf>false</canTargetSelf></targetingParameters>
+    <modExtensions><li Class="VanillaPsycastsExpanded.AbilityExtension_Psycast">
+      <path>BA_BloodArchon</path><level>2</level><order>1</order><psyfocusCost>0.02</psyfocusCost><entropyGain>0</entropyGain><psychic>true</psychic>
+      <prerequisites><li>BA_Drain</li></prerequisites>
+    </li></modExtensions>
+  </VEF.Abilities.AbilityDef>
+  <VEF.Abilities.AbilityDef ParentName="VPE_PsycastBase">
+    <defName>BA_Control</defName><label>blood control</label><description>Temporarily takes control of a hostile humanlike pawn, adding pain. Up to two targets. Base duration 90 seconds. Costs 25 blood.</description>
+    <iconPath>BloodArchon/Abilities/Control</iconPath><abilityClass>BloodArchon.BloodAbility</abilityClass>
+    <range>20</range><castTime>60</castTime><cooldownTime>1800</cooldownTime><targetMode>Pawn</targetMode>
+    <showUndrafted>true</showUndrafted><chance>0</chance>
+    <targetingParameters><canTargetPawns>true</canTargetPawns><canTargetHumans>true</canTargetHumans><canTargetAnimals>false</canTargetAnimals><canTargetMechs>false</canTargetMechs><canTargetBuildings>false</canTargetBuildings><canTargetLocations>false</canTargetLocations><canTargetSelf>false</canTargetSelf></targetingParameters>
+    <modExtensions><li Class="VanillaPsycastsExpanded.AbilityExtension_Psycast">
+      <path>BA_BloodArchon</path><level>3</level><order>1</order><psyfocusCost>0.03</psyfocusCost><entropyGain>0</entropyGain><psychic>true</psychic>
+      <prerequisites><li>BA_Spear</li></prerequisites>
+    </li></modExtensions>
+  </VEF.Abilities.AbilityDef>
+  <VEF.Abilities.AbilityDef ParentName="VPE_PsycastBase">
+    <defName>BA_Transfuse</defName><label>blood transfusion</label><description>Tends all currently tendable injuries and transfers up to 30% blood to an ally. Costs blood per wound and amount transferred.</description>
+    <iconPath>BloodArchon/Abilities/Transfuse</iconPath><abilityClass>BloodArchon.BloodAbility</abilityClass>
+    <range>15</range><castTime>60</castTime><cooldownTime>600</cooldownTime><targetMode>Pawn</targetMode>
+    <showUndrafted>true</showUndrafted><chance>0</chance>
+    <targetingParameters><canTargetPawns>true</canTargetPawns><canTargetHumans>true</canTargetHumans><canTargetAnimals>true</canTargetAnimals><canTargetMechs>false</canTargetMechs><canTargetBuildings>false</canTargetBuildings><canTargetLocations>false</canTargetLocations><canTargetSelf>true</canTargetSelf></targetingParameters>
+    <modExtensions><li Class="VanillaPsycastsExpanded.AbilityExtension_Psycast">
+      <path>BA_BloodArchon</path><level>3</level><order>2</order><psyfocusCost>0.02</psyfocusCost><entropyGain>0</entropyGain><psychic>true</psychic>
+      <prerequisites><li>BA_Shield</li></prerequisites>
+    </li></modExtensions>
+  </VEF.Abilities.AbilityDef>
+  <VEF.Abilities.AbilityDef ParentName="VPE_PsycastBase">
+    <defName>BA_Bats</defName><label>summon blood bats</label><description>Summons 3–5 blood bats for 180 seconds. Each can split once after five successful attacks. Death releases blood to the owner or wounds an enemy. Costs 8 blood per bat.</description>
+    <iconPath>BloodArchon/Abilities/Bats</iconPath><abilityClass>BloodArchon.BloodAbility</abilityClass>
+    <range>0</range><castTime>60</castTime><cooldownTime>2700</cooldownTime><targetMode>Self</targetMode>
+    <showUndrafted>true</showUndrafted><chance>0</chance>
+    
+    <modExtensions><li Class="VanillaPsycastsExpanded.AbilityExtension_Psycast">
+      <path>BA_BloodArchon</path><level>4</level><order>1</order><psyfocusCost>0.04</psyfocusCost><entropyGain>0</entropyGain><psychic>true</psychic>
+      <prerequisites><li>BA_Control</li><li>BA_Transfuse</li></prerequisites>
+    </li></modExtensions>
+  </VEF.Abilities.AbilityDef>
+  <VEF.Abilities.AbilityDef ParentName="VPE_PsycastBase">
+    <defName>BA_Aura</defName><label>aura of blood hunger</label><description>Drains 2% of total blood and cuts every standing flesh pawn in a 30-cell radius with line of sight every 3 seconds. Allies are affected. Activation costs 20 blood, upkeep 1 per second.</description>
+    <iconPath>BloodArchon/Abilities/Aura</iconPath><abilityClass>BloodArchon.BloodAbility</abilityClass>
+    <range>0</range><castTime>60</castTime><cooldownTime>120</cooldownTime><targetMode>Self</targetMode>
+    <showUndrafted>true</showUndrafted><chance>0</chance>
+    
+    <modExtensions><li Class="VanillaPsycastsExpanded.AbilityExtension_Psycast">
+      <path>BA_BloodArchon</path><level>5</level><order>1</order><psyfocusCost>0.05</psyfocusCost><entropyGain>0</entropyGain><psychic>true</psychic>
+      <prerequisites><li>BA_Bats</li></prerequisites>
+    </li></modExtensions>
+  </VEF.Abilities.AbilityDef>
+</Defs>

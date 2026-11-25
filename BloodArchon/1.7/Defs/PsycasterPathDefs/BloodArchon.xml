@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs><VanillaPsycastsExpanded.PsycasterPathDef><defName>BA_BloodArchon</defName><label>blood archon</label><description>Control blood, sustain wounds, and command living bodies.</description><tooltip>Blood archons store blood outside their bodies, drawing it from living beings or from their own natural regeneration.</tooltip><background>BloodArchon/Path</background><altBackground>BloodArchon/PathAlt</altBackground><tab>Psycasts</tab></VanillaPsycastsExpanded.PsycasterPathDef></Defs>

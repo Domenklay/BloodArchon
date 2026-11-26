@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
-  <GF_Manage>Folders</GF_Manage>
-  <GF_ManageTip>Create and edit folders for this pawn.</GF_ManageTip>
-  <GF_FolderTip>Open folder. Right-click to manage folders.</GF_FolderTip>
-  <GF_Title>Command folders</GF_Title>
-  <GF_Help>Create a folder, then choose a folder for each command in the list. Only currently visible commands are shown.</GF_Help>
+  <GF_Manage>Manage folders</GF_Manage>
+  <GF_Folders>Folders</GF_Folders>
+  <GF_OpenTip>Click to expand or collapse.</GF_OpenTip>
+  <GF_ManageTip>Right-click to manage folders.</GF_ManageTip>
+  <GF_Instructions>Create a folder, then choose it beside each command. Deleting a folder returns its commands to the panel.</GF_Instructions>
   <GF_Create>Create</GF_Create>
-  <GF_SelectFolder>Select folder</GF_SelectFolder>
-  <GF_Rename>Save</GF_Rename>
+  <GF_Choose>Choose folder</GF_Choose>
+  <GF_Rename>Rename</GF_Rename>
   <GF_Delete>Delete</GF_Delete>
-  <GF_None>No folder</GF_None>
+  <GF_Search>Search</GF_Search>
+  <GF_Unfiled>On panel</GF_Unfiled>
   <GF_Empty>No available commands in this folder.</GF_Empty>
 </LanguageData>

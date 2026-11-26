@@ -69,6 +69,27 @@ namespace GizmoFolders {
  public class FolderCommand : Command_Action {
   public int count;
   public Action manage;
+  public List<Command> preview;
+  public Rect anchor;
+  public override GizmoResult GizmoOnGUI(Vector2 topLeft,float maxWidth,GizmoRenderParms parms){
+   anchor=new Rect(topLeft.x,topLeft.y,GetWidth(maxWidth),75f);
+   return base.GizmoOnGUI(topLeft,maxWidth,parms);
+  }
+  public override void DrawIcon(Rect rect,Material buttonMat,GizmoRenderParms parms){
+   if(preview==null||preview.Count==0){base.DrawIcon(rect,buttonMat,parms);return;}
+   var old=GUI.color;
+   try{
+    int n=Math.Min(6,preview.Count);int cols=n<=4?2:3;
+    int rows=(n+cols-1)/cols;
+    float cell=Math.Min(24f,(rect.width-8f)/cols);
+    float startX=rect.x+5f,startY=rect.y+4f;
+    for(int i=0;i<n;i++){
+     var c=preview[i];var tile=new Rect(startX+(i%cols)*cell,startY+(i/cols)*cell,cell-2f,cell-2f);
+     GUI.color=Color.white;Widgets.DrawBoxSolid(tile,new Color(.07f,.09f,.11f,.9f));
+     if(c.icon!=null){GUI.color=c.Disabled?new Color(.55f,.55f,.55f,1f):Color.white;GUI.DrawTexture(tile.ContractedBy(1f),c.icon,ScaleMode.ScaleToFit,true);}
+    }
+   }finally{GUI.color=old;}
+  }
   public override string TopRightLabel=>count>0?count.ToString():null;
   public override IEnumerable<FloatMenuOption> RightClickFloatMenuOptions{
    get{if(manage!=null)yield return new FloatMenuOption(L.T("Manage"),manage);}
@@ -136,7 +157,10 @@ namespace GizmoFolders {
      if(inserted.Add(f.id)){
       var folder=f;int count=entries.Count(e=>folder.keys.Contains(e.key));
       var order=original.OfType<Command>().Where(cmd=>keyByCommand.TryGetValue(cmd,out var k)&&folder.keys.Contains(k)).Select(cmd=>cmd.Order).DefaultIfEmpty(c.Order).Min();
-      result.Add(new FolderCommand{defaultLabel=folder.name,defaultDesc=L.T("OpenTip")+"\n"+L.T("ManageTip"),icon=FolderTexture(),count=count,groupable=false,Order=order,manage=manage,action=()=>{var p=lastPawn;if(p!=null)Find.WindowStack.Add(new FolderWindow(p,layout,folder));}});
+      var p=scopePawn;
+      var button=new FolderCommand{defaultLabel=folder.name,defaultDesc=L.T("OpenTip")+"\n"+L.T("ManageTip"),icon=FolderTexture(),count=count,groupable=false,Order=order,manage=manage,preview=entries.Where(e=>folder.keys.Contains(e.key)).Select(e=>e.command).ToList()};
+      button.action=()=>{if(p!=null&&Find.Selector.SingleSelectedThing==p)Find.WindowStack.Add(new FolderWindow(p,layout,folder,button.anchor,count));};
+      result.Add(button);
      }
 
     }
@@ -187,24 +211,36 @@ namespace GizmoFolders {
   }
  }
  public class FolderWindow : Window {
-  readonly Pawn pawn;readonly PawnLayout layout;readonly Folder folder;Vector2 scroll;
-  public FolderWindow(Pawn p,PawnLayout l,Folder f){pawn=p;layout=l;folder=f;doCloseX=true;closeOnAccept=false;closeOnClickedOutside=true;absorbInputAroundWindow=false;}
-  public override Vector2 InitialSize=>new Vector2(Math.Min(540f,UI.screenWidth-40f),Math.Min(380f,UI.screenHeight-50f));
-  protected override void SetInitialSizeAndPosition(){base.SetInitialSizeAndPosition();windowRect.y=Math.Max(0,UI.screenHeight-windowRect.height-145f);}
+  readonly Pawn pawn;readonly PawnLayout layout;readonly Folder folder;readonly Rect anchor;readonly int count;Vector2 scroll;
+  const float Cell=80f,Row=86f;
+  protected override float Margin=>6f;
+  int Columns=>Math.Max(1,Math.Min(Math.Min(5,Math.Max(1,count)),Mathf.FloorToInt((UI.screenWidth-40f)/Cell)));
+  int Rows=>Mathf.CeilToInt(Math.Max(1,count)/(float)Columns);
+  int ShownRows=>Math.Min(Rows,Math.Max(1,Math.Min(3,Mathf.FloorToInt((UI.screenHeight-90f)/Row))));
+  bool ScrollNeeded=>Rows>ShownRows;
+  public FolderWindow(Pawn p,PawnLayout l,Folder f,Rect anchor,int count){pawn=p;layout=l;folder=f;this.anchor=anchor;this.count=count;doCloseX=false;closeOnAccept=false;closeOnClickedOutside=true;absorbInputAroundWindow=false;}
+  public override Vector2 InitialSize=>new Vector2(Math.Min(UI.screenWidth-4f,Columns*Cell+12f+(ScrollNeeded?18f:0f)),Math.Min(UI.screenHeight-4f,ShownRows*Row+12f));
+  protected override void SetInitialSizeAndPosition(){
+   var size=InitialSize;
+   float x=Mathf.Clamp(anchor.x,2f,Math.Max(2f,UI.screenWidth-size.x-2f));
+   float y=anchor.y-size.y-5f;
+   if(y<2f&&anchor.yMax+5f+size.y<=UI.screenHeight-2f)y=anchor.yMax+5f;
+   y=Mathf.Clamp(y,2f,Math.Max(2f,UI.screenHeight-size.y-2f));
+   windowRect=new Rect(x,y,size.x,size.y).Rounded();
+  }
   public override void DoWindowContents(Rect r){
    if(pawn==null||pawn.Dead||Find.Selector?.NumSelected!=1||Find.Selector.SingleSelectedThing!=pawn||!layout.folders.Contains(folder)){Close(false);return;}
-   Text.Font=GameFont.Medium;Widgets.Label(new Rect(0,0,r.width-125,34),folder.name);Text.Font=GameFont.Small;
    var entries=Hooks.Entries(pawn);
-   if(Widgets.ButtonText(new Rect(r.width-115,0,90,30),L.T("Folders"))){Close(false);Find.WindowStack.Add(new Organizer(layout,entries));return;}
    var commands=entries.Where(e=>folder.keys.Contains(e.key)).Select(e=>e.command).Where(c=>c.Visible).ToList();
-   if(commands.Count==0){Widgets.Label(new Rect(0,44,r.width,50),L.T("Empty"));return;}
-   var viewport=new Rect(0,42,r.width,Math.Max(50,r.height-42));int cols=Math.Max(1,Mathf.FloorToInt((viewport.width-16)/85f));
-   var inner=new Rect(0,0,viewport.width-16,Math.Max(viewport.height-1,Mathf.CeilToInt(commands.Count/(float)cols)*90f));
+   if(commands.Count==0){Widgets.Label(r,L.T("Empty"));return;}
+   int cols=Columns;
+   var viewport=new Rect(0,0,r.width,r.height);
+   var inner=new Rect(0,0,cols*Cell,Math.Max(1,Mathf.CeilToInt(commands.Count/(float)cols))*Row);
    Command clicked=null;Event interaction=null;List<FloatMenuOption> menu=null;bool right=false;
    Widgets.BeginScrollView(viewport,ref scroll,inner);
    try{
     for(int i=0;i<commands.Count;i++){
-     var c=commands[i];var pos=new Vector2((i%cols)*85f,(i/cols)*90f);
+     var c=commands[i];var pos=new Vector2((i%cols)*Cell,(i/cols)*Row);
      var key=c.hotKey;c.hotKey=null;
      GizmoResult res;try{res=c.GizmoOnGUI(pos,75f,default(GizmoRenderParms));}finally{c.hotKey=key;}
      if(res.State==GizmoState.Mouseover)c.GizmoUpdateOnMouseover();

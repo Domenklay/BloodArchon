@@ -1,2 +1,2 @@
-# Gizmo Folders 0.1.1
-Independent RimWorld 1.7 mod. Select one player pawn, click Folders, create a folder and assign commands using the searchable organizer. Left-click a folder to open its native command tiles in a scrollable popup; right-click to manage. Multiple selection is unchanged. Per-pawn layouts remain compatible with 0.1.0. Only Command gizmos are grouped. No VPE dependency. No drag-and-drop yet.
+# Gizmo Folders 0.1.2
+Independent RimWorld 1.7 mod. Select one player pawn, click Folders, create a folder and assign commands using the searchable organizer. Left-click a folder to open its native command tiles in a compact anchored popup with up to 5 columns and 3 rows, scrollable for larger folders; folder tiles preview up to 6 contained command icons; right-click to manage. Multiple selection is unchanged. Per-pawn layouts remain compatible with 0.1.0. Only Command gizmos are grouped. No VPE dependency. No drag-and-drop yet.

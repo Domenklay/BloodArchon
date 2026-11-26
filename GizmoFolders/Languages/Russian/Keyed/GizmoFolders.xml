@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
-  <GF_Manage>Управление папками</GF_Manage>
-  <GF_Folders>Папки</GF_Folders>
-  <GF_OpenTip>Нажмите, чтобы раскрыть или свернуть.</GF_OpenTip>
-  <GF_ManageTip>ПКМ — управление папками.</GF_ManageTip>
-  <GF_Instructions>Создайте папку и выберите её напротив нужных команд. Удаление папки вернёт все её кнопки на панель.</GF_Instructions>
+  <GF_Manage>Папки</GF_Manage>
+  <GF_ManageTip>Создать и настроить папки этой пешки.</GF_ManageTip>
+  <GF_FolderTip>Открыть папку. ПКМ — настройка папок.</GF_FolderTip>
+  <GF_Title>Папки способностей</GF_Title>
+  <GF_Help>Создай папку и выбери её для нужных команд в списке. Показаны доступные сейчас плитки.</GF_Help>
   <GF_Create>Создать</GF_Create>
-  <GF_Choose>Выбрать папку</GF_Choose>
-  <GF_Rename>Имя</GF_Rename>
-  <GF_Delete>Удалить</GF_Delete>
-  <GF_Search>Поиск</GF_Search>
-  <GF_Unfiled>На панели</GF_Unfiled>
+  <GF_SelectFolder>Выбрать папку</GF_SelectFolder>
+  <GF_Rename>ОК</GF_Rename>
+  <GF_Delete>Удал.</GF_Delete>
+  <GF_None>Без папки</GF_None>
+  <GF_Empty>В этой папке сейчас нет доступных команд.</GF_Empty>
 </LanguageData>

@@ -8,6 +8,7 @@ permissions:
 jobs:
   compile:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -15,12 +16,11 @@ jobs:
           dotnet-version: '10.0.x'
       - run: dotnet build GizmoFolders/Source/GizmoFolders.csproj -c Release
       - run: |
-          mkdir -p dist/GizmoFolders
-          cp -r GizmoFolders/{About,Languages,1.7} dist/GizmoFolders/
-          find dist/GizmoFolders/1.7/Assemblies -type f ! -name GizmoFolders.dll -delete
-          test -s dist/GizmoFolders/1.7/Assemblies/GizmoFolders.dll
-          cd dist
-          zip -r ../GizmoFolders_0.1.0_RimWorld_1.7.zip GizmoFolders
+          test -s GizmoFolders/1.7/Assemblies/GizmoFolders.dll
+          mkdir -p dist/GizmoFolders/1.7/Assemblies
+          cp -r GizmoFolders/About GizmoFolders/Languages dist/GizmoFolders/
+          cp GizmoFolders/LoadFolders.xml dist/GizmoFolders/
+          cp GizmoFolders/1.7/Assemblies/GizmoFolders.dll dist/GizmoFolders/1.7/Assemblies/
       - uses: actions/upload-artifact@v4
         with:
           name: GizmoFolders-RimWorld-1.7

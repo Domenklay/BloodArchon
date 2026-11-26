@@ -195,7 +195,7 @@ namespace GizmoFolders {
    if(pawn==null||pawn.Dead||Find.Selector?.NumSelected!=1||Find.Selector.SingleSelectedThing!=pawn||!layout.folders.Contains(folder)){Close(false);return;}
    Text.Font=GameFont.Medium;Widgets.Label(new Rect(0,0,r.width-125,34),folder.name);Text.Font=GameFont.Small;
    var entries=Hooks.Entries(pawn);
-   if(Widgets.ButtonText(new Rect(r.width-115,0,90,30),L.T("Manage"))){Close(false);Find.WindowStack.Add(new Organizer(layout,entries));return;}
+   if(Widgets.ButtonText(new Rect(r.width-115,0,90,30),L.T("Folders"))){Close(false);Find.WindowStack.Add(new Organizer(layout,entries));return;}
    var commands=entries.Where(e=>folder.keys.Contains(e.key)).Select(e=>e.command).Where(c=>c.Visible).ToList();
    if(commands.Count==0){Widgets.Label(new Rect(0,44,r.width,50),L.T("Empty"));return;}
    var viewport=new Rect(0,42,r.width,Math.Max(50,r.height-42));int cols=Math.Max(1,Mathf.FloorToInt((viewport.width-16)/85f));

@@ -2,7 +2,7 @@
 <LanguageData>
   <GF_Manage>Manage folders</GF_Manage>
   <GF_Folders>Folders</GF_Folders>
-  <GF_OpenTip>Click to expand or collapse.</GF_OpenTip>
+  <GF_OpenTip>Click to open the folder.</GF_OpenTip>
   <GF_ManageTip>Right-click to manage folders.</GF_ManageTip>
   <GF_Instructions>Create a folder, then choose it beside each command. Deleting a folder returns its commands to the panel.</GF_Instructions>
   <GF_Create>Create</GF_Create>

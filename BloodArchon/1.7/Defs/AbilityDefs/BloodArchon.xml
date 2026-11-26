@@ -34,13 +34,13 @@
     </li></modExtensions>
   </VEF.Abilities.AbilityDef>
   <VEF.Abilities.AbilityDef ParentName="VPE_PsycastBase">
-    <defName>BA_Spear</defName><label>blood spear</label><description>A long-range piercing strike. Base damage 45, armor penetration 80%, costs 12 blood. Adds a bleeding wound to flesh targets.</description>
+    <defName>BA_Spear</defName><label>blood spear</label><description>A long-range piercing strike. Base damage 45, armor penetration 80%, costs 12 blood. A physical projectile made from the caster’s blood: can hit mechs and targets with zero psychic sensitivity. Adds a bleeding wound to flesh targets.</description>
     <iconPath>BloodArchon/Abilities/Spear</iconPath><abilityClass>BloodArchon.BloodAbility</abilityClass>
     <range>40</range><castTime>48</castTime><cooldownTime>300</cooldownTime><targetMode>Pawn</targetMode>
     <showUndrafted>true</showUndrafted><chance>0</chance>
     <targetingParameters><canTargetPawns>true</canTargetPawns><canTargetHumans>true</canTargetHumans><canTargetAnimals>true</canTargetAnimals><canTargetMechs>true</canTargetMechs><canTargetBuildings>false</canTargetBuildings><canTargetLocations>false</canTargetLocations><canTargetSelf>false</canTargetSelf></targetingParameters>
     <modExtensions><li Class="VanillaPsycastsExpanded.AbilityExtension_Psycast">
-      <path>BA_BloodArchon</path><level>2</level><order>1</order><psyfocusCost>0.02</psyfocusCost><entropyGain>0</entropyGain><psychic>true</psychic>
+      <path>BA_BloodArchon</path><level>2</level><order>1</order><psyfocusCost>0.02</psyfocusCost><entropyGain>0</entropyGain><psychic>false</psychic>
       <prerequisites><li>BA_Drain</li></prerequisites>
     </li></modExtensions>
   </VEF.Abilities.AbilityDef>
